@@ -1,0 +1,1 @@
+Using advanced Soccer statistics like xG, xA, etc, we predicted the market value of each player in the top European Soccer leagues based on TransferMarkt's crowdsourced values. This allowed us to identify undervalued players a team would theoretically target
