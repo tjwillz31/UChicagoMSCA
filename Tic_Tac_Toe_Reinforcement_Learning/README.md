@@ -1,0 +1,1 @@
+Using Python, we created a self-contained program to create an environment that allows an Agent to play Tic Tac Toe and improve through Reinforcement Q Learning. We created agents for the X and O players 
