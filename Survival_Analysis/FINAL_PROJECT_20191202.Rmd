@@ -1,0 +1,537 @@
+---
+title: "FINAL_PROJECT_20191124"
+author: "Justin Cox, Taylor Williams & Sneha Vasudevan"
+date: "12/02/2019"
+output:
+  html_document: default
+  word_document: default
+---
+
+# Introduction to Survival Analysis : 
+
+Survival Analysis is a set of statistical tools, which answers the question "how long would it be before a particular event occurs?". This technique is called survival analysis because this method was primarily developed by medical researchers and they were more interested in finding expected lifetime of patients in different groups. 
+
+# What is Survival Analysis ? 
+
+Survival Analysis is sometimes also called "Time to Event" Analysis. It attempts to model the probability of an event of interest occuring at any point in time from the time of origin until end of study.
+
+From this definition, it is evident that "event of interest" and "time of origin" form the basis of this model. 
+
+Event : Death, disease occurance, disease recurrence, recovery. The time at which the event occurs is called Time of event. 
+
+Time origin : beginning of an observation period (such as surgery or beginning of treatment) to (i) an event, or (ii) end of the study, or (iii) loss of contact or withdrawal from the study.[3]
+
+Time to Event  (T) = Time of occurence - Time origin 
+
+We are trying to determine the probability that Time to Event is after some time that we've observed.
+
+$$S_t = P(T > t)$$
+
+# Example Applications in the medical industry 
+
+1. Time until cardiovasular death after since treatment intervention 
+
+2. Time until AIDs for HIV patients 
+
+# Example Applications in customer/marketing analytics industry 
+
+1. Churn prevention efforts of high-value customers with low survival time. 
+
+In the above example, Event would be the time at which the customer unsubcribes and time would be the time at which the customer starts subscribes for a service with that company [2]. 
+
+2. Calculating retention rates of each marketing channel. 
+
+Event is defined as the time at which the customer unsubscribe a marketing channel. Time of origin is defined as the time at which the customer starts the service / subscription of a marketing channel [2].
+
+
+# Predictive Maintenance in Mechanical Operations:
+
+1. Time until a machine part/ equipment fails. 
+
+Event is defined as the time at which the machine breaks down. Time of origin is defined as the time of start of machine for the continuous operations[2]. 
+
+# Data and Survival time response attributes 
+
+1. T is random 
+2. T is continuous 
+3. T is non-negative. It can positive real value (including zero). 
+
+Data on times until failure have two important features : 
+a) The times are non-negative and typically skewed distributions with long tails 
+b) Some of the subjects may survive beyond the period so that their actual failure times may not be known. In this case, and other cases where the failure times are not known completely, the data is said to be censored.
+
+In survival analysis, we do not need the exact starting points and ending points. Observations dont always start at zero. A subject can enter and exit the study whenever. All the time durations are relative. All the subjects are bought to a common starting point where the time t is zero (t = 0) and all subjects have the survival probabilities equal to one, i.e their chances of not experiencing the event of interest (death, churn, etc) is 100%.[2]
+
+Estimation and inference for survival data are complicated by the presence of censored survival times.
+
+### Additional notes
++ If there is no censoring, standard regression procedures could be used.However, these may be inadequate because : 
++ Time to event is restricted to be positive and has a skewed distribution.
++ The probability of surviving past a certain point in time may be of more interest than the expected time of event.
++ The hazard function, used for regression in survival analysis, can lend more insight into the failure mechanism than linear regression.
+
+# Data Truncation and Censoring 
+
+
+
+![](/Users/snev8/Desktop/Linear_Non-Linear/Final Project/censoring-3.png)
+
++ Event of interest:   First truck service/ maintenance (since purchase). 
++ Survival Period  :  From purchase of truck till first service
++ Study Period : Mid 2010 to mid 2013
+
+Censored Data implies for those observations that do not experience the event of interest. 
+
+Truncated Data implies that these observations have their event time happen during the study. 
+
+#### Right censoring: 
++ Lived longer than duration of the study
++ Left early without experiencing the event of interest. Therefore, couldnt be part of the study. 
+
+#### Left censoring:
++ event of interest occured before the study
++ Usually used when goal of the study is to perform analysis on the subject who have already experiences the event, and we wish to see whether the subject will experience again. 
+
+#### Right Truncated: 
++ Birth event unknown, but know of this observation during the event of interest. Event of interest has occured. 
+
+#### Left Truncated: 
++ Birth event occured before entering study.
+
+#### Summary of censoring : 
+Survival analysis is developed to mainly to solve the problem of right censoring, which is our focus for this project.
+
+# Kaplan-Meier 
+  
+The Kaplan-Meier method is a nonparametric way to empirically describe the survival function S(t) for a dataset that may or may not contain censored data. It provides the average survival probability for our observed population.
+
+We are trying to determine the risk of an event occuring at any time (t). This is called the hazard rate h(t). We use this instantaneous risk h(t) to determine the probability of survival s(t) at any time (t). The hazard rate for any time (t) is the number of observations that failed in that period divided by the number of observations that were at risk going into the period. It is independent of the hazard rate from any other period. The survival probability for the period is one minus the hazard rate. Since each period is independent, the cumulative survival probability S(t) is the period's survival probability s(t) multiplied by the cumulative survival probability from the last period. [9]
+
+### Observed data
+
+$$d_t = \text{number of observations that failed in time (t)}$$ 
+$$r_t= \text{number of observations at risk at the start of time (t)}$$
+
+$$c_t = \text{number censored at time (t)}$$
+
+### Hazard rate
+
+$$h_t = \frac{d_t}{r_t}$$
+
+### Cumultivate hazard rate
+
+$$H_t= \sum_{i=0}^t h_i$$
+
+### Survival probability
+
+$$s_t = 1 - h_t$$
+
+### Cumulative Survival probabilty
+
+$$S_t = \Pi_{i=0}^{t}s_i$$
+
+Using simulation, we can demonstrate the methodology for calculating the hazard rate and survival probability over a trial period.
+
+We use the exponential distribution to simulate survival times and the binomial distribution to simulate censoring. From there, the trial range is broken into periods where at each period, the number of observations are at risk (still in the trial), the number that fail in that period, and the number that are censored (or lost) in that period. Each period's hazard rate (survival probability) is independent of the previous period's hazard rate.
+
+In the last period, any surviving subjects are censored.
+
+The survival rate can be plotted against time.
+
+```{r}
+# Simulate the observed data
+set.seed(54352)
+failure_time <- rexp(100, 0.05)
+plot(failure_time, main="Failure Times")
+hist(failure_time)
+
+# Trial period will be 0 - 40
+trial_end <- 40
+
+censor <- rbinom(100, 1, 0.15)
+input_data <- cbind.data.frame(failure_time, censor)
+
+# Build summary table
+time <- seq(0, trial_end, 1)
+failed_count <- rep(0, length(time))
+censor_count <- rep(0, length(time))
+risk_count <- rep(0, length(time))
+risk_count[1] <- length(failure_time)
+hazard_rate <- rep(0, length(time))
+survival_prob <- rep(0, length(time))
+survival_prob[1] <- 1
+
+times_table <- cbind.data.frame(time, failed_count, censor_count, risk_count, hazard_rate, survival_prob)
+
+# Loop through each time t to find counts of failed and censored and at risk, and hazard rate and survival prob for that time t 
+for (i in 1:(trial_end - 1)) {
+  times_table$failed_count[i + 1] <- sum(input_data$failure_time <= i & input_data$failure_time > i - 1 & input_data$censor == 0)
+  times_table$censor_count[i + 1] <- sum(input_data$failure_time <= i & input_data$failure_time > i - 1 & input_data$censor == 1)
+  times_table$risk_count[i + 1] <- times_table$risk_count[i] - times_table$failed_count[i] - times_table$censor_count[i]
+  times_table$hazard_rate[i + 1] <- times_table$failed_count[i + 1] / times_table$risk_count[i + 1]
+  times_table$survival_prob[i + 1] <- times_table$survival_prob[i] * (1 - times_table$hazard_rate[i + 1])
+}
+
+# Special calculations for the last period t to pick up the extra right censored observations
+times_table$failed_count[trial_end + 1] <- sum(input_data$failure_time <= trial_end & input_data$failure_time > trial_end - 1 & input_data$censor == 0)
+times_table$censor_count[trial_end + 1] <- sum(input_data$failure_time <= trial_end & input_data$failure_time > trial_end - 1 & input_data$censor == 1)
+times_table$censor_count[trial_end + 1] <- times_table$censor_count[trial_end + 1] + sum(input_data$failure_time > trial_end)
+times_table$risk_count[trial_end + 1] <- times_table$risk_count[trial_end] - times_table$failed_count[trial_end] - times_table$censor_count[trial_end]
+times_table$hazard_rate[trial_end + 1] <- times_table$failed_count[trial_end + 1] / times_table$risk_count[trial_end + 1]
+times_table$survival_prob[trial_end + 1] <- times_table$survival_prob[trial_end] * (1 - times_table$hazard_rate[trial_end + 1])
+
+# Plot survival probability
+head(times_table)
+plot(times_table$time, times_table$survival_prob, type="l", col="blue", xlab="Time", ylab="Survival Rate", 
+     main="Survival Rate by Time of Simulated Data")
+```
+  
+Different kinds of survival curves may be obtained by making different assumptions about the baseline hazard function $$h_0(t)$$ [11]
+
+It can be constant where $$h_0(t) = h_0$$
+
+Alternatively, it can follow such distributions as Exponential, Weibull, or Log-Normal. Choose the distribution that best fits your specific data set.
+
+# Cox Proportional Hazard Model
+
+Kaplan-Meier explains the average survival probability of the entire population, but to explain how individual characteristics of each observation affect the probability of survival, we must use the Cox Proportional Hazard Model. 
+
+This model allows us to incorporate individual covariates of each observation to the find the survival probability given the covariates.
+
+$$S(t|x) = P(T>t|x)$$  
+
+We estimate survival through the ratio of an individual's hazard rate with the base hazard rate.
+
+Assumptions of the Cox Proportional Hazard Model:
+
++ Observations are independent
++ The covariates have a linear mulitplicative effect on the hazard function and the effect stays the same across time. [2]
++ Covariates must be numerical or dummy coded categorical variables.
+
+Individual hazard rate can be defined as:
+$$h_i(t|X=x)=h_0(t){e^{x^T\beta}}$$
+
+The likelihood of the event to be observed occurring for subject i at time Ti can be written as [10]:
+
+$$L_i(\beta)= \frac{h(T_i|X_i)}{\sum_{j:T_j \geq T_i}h(T_i|X_j)} = \frac{h_0(T_i)e^{X_i^T\beta}}{\sum_{j:T_j \geq T_i}h_0(T_i)e^{X_j^T\beta}}=\frac{e^{X_i^T\beta}}{\sum_{j:T_j \geq T_i}e^{X_j^T\beta}}=\frac{\theta_i}{\sum_{j:T_j \geq T_i}\theta_j}$$
+
+Since each observation is independent, we can multiply the individual likelihoods to get the total likelihood for the study. [10] 
+
+$$L(\beta) = \Pi_{i:C_i=1}L_i(\beta)$$
+
+$$C_i = 1 \text{ means the event happend for observation i.}$$
+
+To estimate the betas, we maximize the likelihood function using a Newton-Raphsom algorithm. [10]
+
+Similar to regression models, the Cox model is more reliable with normally distributed variables. 
+
+This equations hold under the assumption that theta, the effects of our covariates and our betas, is constant over time. If that's not the case, we need to utilize time-variant models, where either X is based on t, or beta is based on t. [11]
+
+X is based t [11]:
+$$h(t, X(t)) = h_0(t)e^{X(t)^T\beta}$$
+
+Effect of beta on h is based on t [11]:
+$$h(t,X)=h_0(t)e^{X^T\beta(t)}$$
+
+# Example 
+
+Inference : 
+
+Rectime - recurrence time until breast cancer recurred in this subject. if they didnt have recurrence during the study, observation is censored cause we didnt really observe what we wanted to see. 
+
+Progresterone receptors/Estrogen receptors  - sensitivity to hormones.
+
+Other covariates - age, hormone (whether the subject received hormone treatments), menopause (whether the subject has experienced menopause)
+
+Summary of variable : 
+censrec - Varible whether data was censored or not. Zero indicates that the data is censored, and a 1 is not censored.
+
+Loading and exploring data
+```{r}
+gbcs <- read.csv("https://ryanwomack.com/data/gbcs.csv")
+attach(gbcs)
+dim(gbcs)
+head(gbcs)
+summary(gbcs)
+table(menopause)
+table(hormone)
+par(mfrow=c(2,2))
+hist(age)
+plot(density(age))
+hist(prog_recp)
+plot(density(prog_recp), main="Progesterone receptors, density plot")
+```
+
+```{r}
+#plots
+par(mfrow=c(2,3))
+plot(rectime~age)
+plot(rectime~menopause)
+plot(rectime~hormone)
+plot(rectime~prog_recp)
+plot(rectime~estrg_recp)
+plot(rectime~censrec)
+```
+
+
+```{r}
+#correlation matrix
+cor(gbcs)
+```
+
+
+# Survival object and survfit
+
+Surv function takes the recurrence time and links it with the censored flag. 
+```{r}
+#reuseable survival objects
+library(survival)
+recsurv<-Surv(rectime,censrec) 
+recsurv 
+```
+
+Survfit fits survival curves with various methods. Kaplan-Meier is most common. Technique for figuing out portion of people who are surviving. Survfit  - fits survival curve to the object
+```{r}
+fit_KM <- survfit(recsurv~1,type="kaplan-meier", conf.type="log-log")
+```
+
+
+```{r}
+par(mfrow=c(1,1))
+x1= 500
+x2=1000
+plot(fit_KM, main="Survival function for rectime (K-M estimate)", xlab="days", ylab="p") 
+```
+
+#dotted lines denotes the 95% confidence interval
+
+```{r}
+#print restricted means
+print(fit_KM,print.rmean=TRUE)
+```
+
+58 events (recurrences out of 100). Other 42 half useful info - censored data. The restricted mean is the average survival time with some consideration of the censored data. 
+
+This plot is the cumulative hazard, which is the cumulative risk of the event occuring. It is not the probablity of the event happeing. It is the ongoing risk from period to period so gets expressed differently.
+```{r}
+plot(fit_KM, fun="cumhaz")
+```
+
+The plot shows the cumulative probability that the event will happen called the cumulative event (f(y)=1-y).
+
+```{r}
+plot(fit_KM, fun="event")
+```
+
+# Survival curves based on the features.
+
+```{r}
+#survfits to illustrate impact of variables
+leg.txt<-c("Below 54", "Above 54")
+fit <- survfit(recsurv~as.numeric(age>median(age)))
+plot(fit, col=c(2,4), main="Survival Curve by Median Age")
+legend("topright",leg.txt,col=c(2,4),lty=1)
+```
+
+```{r}
+leg.txt <- c("No Treatment", "Treatment")
+fit <- survfit(recsurv~hormone)
+plot(fit, col=c(2,4), 
+     main="Survival Curve by Hormone Treatment")
+legend("topright",leg.txt,col=c(2,4),lty=1)
+```
+
+```{r}
+leg.txt <- c("Low", "High")
+fit <- survfit(recsurv~as.numeric(prog_recp>median(prog_recp)))
+plot(fit, col=c(2,4), 
+     main="Survival Curve By Progesterone Level")
+legend("topright",leg.txt,col=c(2,4),lty=1)
+```
+
+
+```{r}
+fit <- survfit(recsurv~as.numeric(estrg_recp>median(estrg_recp)))
+plot(fit, col=c(2,4), main="Survival Curve by Estrogen Level")
+legend("topright",leg.txt,col=c(2,4),lty=1)
+```
+
+```{r}
+#try with package "flexsurv"
+#flexsurv provides access to additional distributions
+
+library(flexsurv)
+fit_exp<-flexsurvreg(recsurv~1, dist="exp")
+fit_weibull<-flexsurvreg(recsurv~1, dist="weibull")
+fit_gamma<-flexsurvreg(recsurv~1, dist="gamma")
+fit_lognormal<-flexsurvreg(recsurv~1, dist="lnorm")
+fit_exp
+fit_weibull
+fit_gamma
+fit_lognormal
+plot(fit_exp, main="Exponential")
+plot(fit_weibull, main="Weibull")
+plot(fit_gamma, main="Gamma")
+plot(fit_lognormal, main="Log-Normal")
+```
+
+# Goodness of Fit
+
+```{r}
+#log likelihood test
+fit_exp$loglik
+fit_weibull$loglik
+fit_gamma$loglik
+fit_lognormal$loglik
+```
+
+```{r}
+#AIC is reported by flexsurv
+fit_exp$AIC
+fit_weibull$AIC
+fit_gamma$AIC
+fit_lognormal$AIC
+```
+
+
+Checking goodness of fit using qqplots.
+```{r}
+library(e1071)
+probplot(rectime)
+probplot(rectime, "qunif") #best fit
+probplot(rectime, "qexp")
+probplot(rectime, "qnorm")
+probplot(rectime, "qweibull", shape=1)
+probplot(rectime, "qlnorm")
+probplot(rectime, "qgamma", shape=1)
+
+```
+
+# Cox Proportional Hazard Models
+Fitting a cox model to different features
+```{r}
+par(mfrow=c(1,1))
+fit <- coxph(recsurv~age)
+fit
+cox.zph(fit)
+plot(cox.zph(fit), main="Betas by Age")
+```
+
+
+```{r}
+fit <- coxph(recsurv~as.factor(hormone))
+fit
+cox.zph(fit)
+plot(cox.zph(fit), main="Betas by Hormone Treatment")
+```
+
+```{r}
+fit <- coxph(recsurv~prog_recp)
+fit
+cox.zph(fit)
+plot(cox.zph(fit), main="Betas by Progesterone Level")
+```
+
+
+```{r}
+fit <- coxph(recsurv~estrg_recp)
+fit
+cox.zph(fit)
+plot(cox.zph(fit), main="Betas by Estrogen Level")
+```
+
+# Model comparison 
+```{r}
+#Full model with all variables
+coxfullmodel<-coxph(recsurv~hormone+prog_recp+estrg_recp+age+menopause)
+coxfullmodel
+```
+
+
+Because hormone treatment and progesterone level are the most significant to survival time, the model provided below considers only these variables. 
+
+```{r}
+coxmodel1<-coxph(recsurv~hormone+prog_recp)
+anova(coxfullmodel,coxmodel1)
+```
+
+
+p value is 0.2033. This value tells us that this model is not different from our full/ saturated. 
+
+```{r}
+coxmodel2<-coxph(recsurv~hormone+log(prog_recp+0.1))
+anova(coxfullmodel,coxmodel2)
+```
+
+p value is 0.9136 which is really high. This value tells us that model2 is no different from our full/ saturated model. 
+
+```{r}
+coxmodel3<-coxph(recsurv~prog_recp)
+anova(coxfullmodel,coxmodel3)
+```
+
+p value is 0.0831 which is really low. This value tells us that model3 may be different from our full/ saturated model at significance level of 0.1.
+
+```{r}
+coxmodel4<-coxph(recsurv~log(prog_recp+0.1))
+anova(coxfullmodel,coxmodel4)
+```
+
+p value is 0.1024. This value tells us that model4 may be different from our full/ saturated model. Based on our above analysis, we conclude that our best model is achieved using hormone and the log of progesterone. 
+
+```{r}
+par(mfrow=c(1,2))
+hist(prog_recp)
+hist(log(prog_recp+0.1))
+```
+
+
+```{r}
+coxmodel2
+```
+
+
+
+Based on our final model, we see that both our variables are significant. The risk of recurrence of breast cancer is decreased by 47.5% for people who take hormone treatment versus those who don't. A unit decrease in the log number of progesterone receptors decreases the likelihood of recurrence in breast cancer by 81%. So people who took hormone treatement associated with increasing progesterone levels helped decrease the overall risk. 
+
+# Reference 
+
+1. https://towardsdatascience.com/survival-analysis-part-a-70213df21c2e
+2. https://towardsdatascience.com/survival-analysis-intuition-implementation-in-python-504fde4fcf8
+3. https://en.wikipedia.org/wiki/Survival_analysis
+4. http://www.stat.columbia.edu/~madigan/W2025/notes/survival.pdf
+5. An Introduction to Generalized Linear Models, 4th edition, Annette J Dobson & Adrian G Barnett.
+6. Survival R Package Documentation 
+7. https://www.mathworks.com/help/stats/survival-analysis.html
+8. https://www.mathworks.com/help/stats/cox-proportional-hazard-regression.html
+9. https://www.mathworks.com/help/stats/kaplan-meier-methods.html
+10. https://en.wikipedia.org/wiki/Proportional_hazards_model
+11. https://data.princeton.edu/wws509/notes/c7.pdf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
